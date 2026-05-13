@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>서울대 연구실 스캐너</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --blue:#1a6fc4;--blue-light:#e8f1fb;--blue-mid:#b8d4f0;
+  --green:#1a7a4a;--green-light:#e6f4ed;
+  --red:#c0392b;--red-light:#fdecea;
+  --amber:#b45309;--amber-light:#fef3cd;
+  --gray:#6b7280;--gray-light:#f3f4f6;
+  --border:#e5e7eb;--text:#111827;--text2:#6b7280;
+  --bg:#f9fafb;--card:#fff;--radius:14px;--radius-sm:8px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:90px}
+.header{background:#fff;border-bottom:1px solid var(--border);padding:14px 16px;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:10px}
+.header-icon{width:36px;height:36px;background:var(--blue-light);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.header-title{font-size:15px;font-weight:700}
+.header-sub{font-size:11px;color:var(--text2);margin-top:1px}
+.header-cnt{margin-left:auto;background:var(--blue);color:#fff;font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;display:none}
+.main{padding:14px;max-width:600px;margin:0 auto}
+.btn-cam{width:100%;padding:17px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:9px;cursor:pointer;margin-bottom:9px;-webkit-appearance:none;font-family:inherit}
+.btn-cam:active{opacity:.8}
+.btn-gal{width:100%;padding:13px;background:var(--card);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius);font-size:15px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;-webkit-appearance:none;font-family:inherit;margin-bottom:9px}
+.btn-gal:active{background:var(--gray-light)}
+.drop-zone{border:2px dashed var(--blue-mid);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;margin-bottom:9px;display:none}
+.drop-zone.over{background:var(--blue-light);border-color:var(--blue)}
+.drop-zone p{font-size:13px;color:var(--text2)}
+.drop-zone strong{color:var(--blue)}
+@media(hover:hover){.drop-zone{display:block}}
+.debug-box{background:#1e1e1e;color:#00ff88;font-family:monospace;font-size:11px;padding:10px;border-radius:8px;margin-bottom:10px;max-height:140px;overflow-y:auto;display:none}
+.sec-title{font-size:13px;font-weight:600;color:var(--text2);margin:4px 0 8px;display:flex;align-items:center;justify-content:space-between}
+.btn-add{font-size:12px;padding:5px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer}
+.rec-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:9px}
+.rec-card.loading{border-color:var(--blue-mid)}
+.card-top{display:flex;align-items:flex-start;gap:11px}
+.card-thumb{width:56px;height:56px;border-radius:9px;object-fit:cover;border:1px solid var(--border);flex-shrink:0}
+.card-ph{width:56px;height:56px;border-radius:9px;background:var(--gray-light);border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+.card-body{flex:1;min-width:0}
+.card-meta{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.b-done{background:var(--green-light);color:var(--green)}
+.b-ing{background:var(--blue-light);color:var(--blue)}
+.b-err{background:var(--red-light);color:var(--red)}
+.card-room{font-size:11px;color:var(--text2)}
+.card-name{font-size:15px;font-weight:700;margin-bottom:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-err{font-size:11px;color:var(--red);margin-bottom:4px;word-break:break-all;white-space:pre-wrap}
+.card-row{font-size:13px;color:var(--text2);display:flex;align-items:center;gap:5px;margin-bottom:3px}
+.card-link{color:var(--blue);text-decoration:none;font-size:13px}
+.card-link.amber{color:var(--amber)}
+.prog-wrap{height:3px;background:var(--blue-light);border-radius:3px;overflow:hidden;margin-top:7px}
+.prog-bar{height:100%;background:var(--blue);border-radius:3px;animation:prog 2.5s ease-in-out infinite}
+@keyframes prog{0%{width:5%}60%{width:80%}100%{width:92%}}
+.step-txt{font-size:11px;color:var(--blue);margin-top:4px}
+.card-actions{display:flex;gap:7px;margin-top:9px;padding-top:9px;border-top:1px solid var(--border)}
+.btn-edit{flex:1;font-size:12px;padding:7px;background:var(--gray-light);border:none;border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-family:inherit}
+.btn-del{font-size:12px;padding:7px 11px;background:var(--red-light);border:none;border-radius:var(--radius-sm);color:var(--red);cursor:pointer;font-family:inherit}
+.export-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:11px 14px;padding-bottom:calc(11px + env(safe-area-inset-bottom));display:flex;gap:9px;z-index:100}
+.btn-export{flex:1;padding:13px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-appearance:none}
+.btn-export:disabled{opacity:.4;cursor:not-allowed}
+.btn-clear{padding:13px 14px;background:var(--gray-light);border:none;border-radius:var(--radius-sm);color:var(--red);cursor:pointer;font-size:13px;font-weight:500;font-family:inherit}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:18px 18px 0 0;padding:18px;width:100%;max-width:600px;max-height:88vh;overflow-y:auto}
+.modal-hd{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{font-size:22px;color:var(--text2);background:none;border:none;cursor:pointer;line-height:1}
+.field{margin-bottom:13px}
+.field label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:4px}
+.field input{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:15px;color:var(--text);background:#fff;-webkit-appearance:none;outline:none;font-family:inherit}
+.field input:focus{border-color:var(--blue)}
+.btn-save{width:100%;padding:14px;background:var(--blue);color:#fff;border:none;border-radius:var(--radius);font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;-webkit-appearance:none}
+.empty{text-align:center;padding:40px 16px;color:var(--text2)}
+.empty-icon{font-size:44px;margin-bottom:10px}
+.empty p{font-size:14px;line-height:1.7}
+.spinner{width:11px;height:11px;border:2px solid rgba(26,111,196,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:72px;left:50%;transform:translateX(-50%);background:rgba(17,24,39,.92);color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;font-weight:500;z-index:300;pointer-events:none;max-width:90vw;text-align:center}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">&#127979;</div>
+  <div>
+    <div class="header-title">서울대 연구실 스캐너</div>
+    <div class="header-sub">사진 촬영 → AI 인식 → 엑셀 저장</div>
+  </div>
+  <div class="header-cnt" id="hcnt">0</div>
+</div>
+
+<div class="main">
+
+  <button class="btn-cam" id="btn-cam" onclick="document.getElementById('inp-cam').click()">
+    &#128247; 카메라로 지금 찍기
+  </button>
+  <input type="file" id="inp-cam" accept="image/*" capture="environment" multiple style="display:none">
+
+  <button class="btn-gal" id="btn-gal" onclick="document.getElementById('inp-gal').click()">
+    &#128444; 갤러리 / 파일에서 선택 (여러 장)
+  </button>
+  <input type="file" id="inp-gal" accept="image/*" multiple style="display:none">
+
+  <div class="drop-zone" id="drop-zone">
+    <div style="font-size:28px;margin-bottom:6px">&#128193;</div>
+    <p><strong>여기에 사진을 끌어다 놓거나</strong> 클릭해서 선택 (PC)</p>
+  </div>
+
+  <div class="debug-box" id="debug-box"></div>
+
+  <div id="list-sec" style="display:none">
+    <div class="sec-title">
+      <span id="list-title">수집 목록</span>
+      <button class="btn-add" id="btn-add">+ 수동 추가</button>
+    </div>
+    <div id="card-list"></div>
+  </div>
+
+  <div class="empty" id="empty-state">
+    <div class="empty-icon">&#128247;</div>
+    <p>위 버튼으로 연구실 명패 사진을<br>찍거나 업로드하세요<br><br>AI가 호실·연구소명을 자동 인식하고<br>구글 검색 링크를 생성합니다</p>
+  </div>
+</div>
+
+<div class="export-bar">
+  <button class="btn-export" id="btn-exp" disabled>엑셀 저장 (<span id="exp-cnt">0</span>건)</button>
+  <button class="btn-clear" id="btn-clear">초기화</button>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-hd">
+      <span id="modal-ttl">연구실 정보 편집</span>
+      <button class="modal-close" id="modal-close">&#215;</button>
+    </div>
+    <div class="field"><label>호실 번호</label><input id="f-room" type="text" placeholder="예: 302호"></div>
+    <div class="field"><label>연구소/연구실명</label><input id="f-lab" type="text" placeholder="예: 지능형로봇연구실"></div>
+    <div class="field"><label>교수명</label><input id="f-prof" type="text" placeholder="예: 홍길동 교수"></div>
+    <div class="field"><label>홈페이지 URL</label><input id="f-hp" type="url" placeholder="https://..."></div>
+    <div class="field"><label>이메일</label><input id="f-email" type="email" placeholder="example@snu.ac.kr"></div>
+    <div class="field"><label>학과</label><input id="f-dept" type="text" placeholder="예: 전기정보공학부"></div>
+    <div class="field"><label>건물명</label><input id="f-bldg" type="text" placeholder="예: 301동"></div>
+    <button class="btn-save" id="btn-save">저장</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(function() {
+  var records = [];
+  var uid = 0;
+  var editId = null;
+  var toastEl = null;
+
+  // ── 디버그 로그 ──
+  function dbg(msg) {
+    var box = document.getElementById('debug-box');
+    box.style.display = 'block';
+    var line = document.createElement('div');
+    line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+    console.log('[스캐너]', msg);
+  }
+
+  // ── 토스트 ──
+  function toast(msg) {
+    if (toastEl) { toastEl.remove(); toastEl = null; }
+    toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    toastEl.textContent = msg;
+    document.body.appendChild(toastEl);
+    setTimeout(function() { if (toastEl) { toastEl.remove(); toastEl = null; } }, 3500);
+  }
+
+  // ── 파일 처리 ──
+  function handleFiles(files) {
+    var arr = Array.from(files);
+    dbg('파일 ' + arr.length + '개 선택됨');
+    arr.forEach(function(f) {
+      if (!f.type.startsWith('image/')) {
+        dbg('건너뜀 (이미지 아님): ' + f.name);
+        return;
+      }
+      dbg('읽는 중: ' + f.name + ' (' + f.type + ', ' + Math.round(f.size/1024) + 'KB)');
+      var reader = new FileReader();
+      reader.onerror = function() { dbg('FileReader 오류: ' + f.name); };
+      reader.onload = function(ev) {
+        dbg('FileReader 완료, 리사이즈 시작: ' + f.name);
+        resizeImage(ev.target.result, f.name);
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+
+  // ── 이미지 리사이즈 (API 한도: ~1MB) ──
+  function resizeImage(dataUrl, fname) {
+    var MAX_PX = 1280;
+    var MAX_BYTES = 900000; // base64 기준 ~900KB
+    var img = new Image();
+    img.onerror = function() {
+      dbg('이미지 로드 실패, 원본 사용');
+      processImage(dataUrl, fname);
+    };
+    img.onload = function() {
+      var w = img.width;
+      var h = img.height;
+      dbg('원본 크기: ' + w + 'x' + h);
+      var scale = Math.min(1, MAX_PX / Math.max(w, h));
+      var tw = Math.round(w * scale);
+      var th = Math.round(h * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = tw;
+      canvas.height = th;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, tw, th);
+      // 품질 조절: base64 크기가 한도 이하가 될 때까지
+      var quality = 0.85;
+      var result = canvas.toDataURL('image/jpeg', quality);
+      while (result.length > MAX_BYTES && quality > 0.3) {
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      dbg('리사이즈 완료: ' + tw + 'x' + th + ', base64=' + result.length + ', quality=' + quality.toFixed(1));
+      processImage(result, fname);
+    };
+    img.src = dataUrl;
+  }
+
+  // ── JSON 파싱 ──
+  function safeParse(text) {
+    var s = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    try { return JSON.parse(s); } catch(e) {}
+    var m = s.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch(e) {} }
+    return null;
+  }
+
+  // ── 이미지 인식 ──
+  function processImage(dataUrl, fname) {
+    var id = ++uid;
+    dbg('processImage 시작: id=' + id);
+
+    records.unshift({
+      id: id, room: null, lab_name: '인식 중...', professor: null,
+      homepage: null, email: null, department: null, building: null,
+      googleLink: null, status: 'analyzing', thumb: dataUrl, errMsg: null
+    });
+    renderUI();
+    toast('사진 분석 중... (5~10초 소요)');
+
+    var startTime = Date.now();
+    var tmr = setInterval(function() {
+      var sec = Math.floor((Date.now() - startTime) / 1000);
+      var idx = findIdx(id);
+      if (idx < 0 || records[idx].status !== 'analyzing') { clearInterval(tmr); return; }
+      var els = document.querySelectorAll('.step-txt');
+      for (var i = 0; i < els.length; i++) {
+        els[i].textContent = '인식 중... (' + sec + '초 경과)';
+      }
+    }, 1000);
+
+    var base64 = dataUrl.split(',')[1];
+    var mediaType = dataUrl.split(';')[0].split(':')[1];
+    dbg('API 호출 시작: ' + mediaType + ', base64 길이=' + base64.length);
+
+    var promptText = '이 이미지는 대학교 연구실 명패 사진입니다. 이미지의 텍스트를 읽어 JSON만 출력하세요(설명없이): {"room":"호실번호또는null","lab_name":"연구실명또는null","professor":"교수이름또는null","department":"학과또는null","building":"건물명또는null"}';
+
+    var requestBody = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 512,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: promptText }
+        ]
+      }]
+    };
+
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody)
+    })
+    .then(function(res) {
+      dbg('응답 수신: HTTP ' + res.status);
+      return res.text().then(function(text) {
+        dbg('응답 RAW: ' + text.slice(0, 400));
+        var data;
+        try { data = JSON.parse(text); } catch(e) { data = { _raw: text }; }
+        return { status: res.status, ok: res.ok, data: data };
+      });
+    })
+    .then(function(result) {
+      clearInterval(tmr);
+
+      if (!result.ok) {
+        var msg = (result.data && result.data.error && result.data.error.message)
+          || JSON.stringify(result.data).slice(0, 200)
+          || ('HTTP ' + result.status);
+        throw new Error(msg);
+      }
+      if (result.data.error) {
+        throw new Error(result.data.error.message || JSON.stringify(result.data.error));
+      }
+
+      var raw = '';
+      var content = result.data.content || [];
+      for (var i = 0; i < content.length; i++) {
+        if (content[i].text) raw += content[i].text;
+      }
+      raw = raw.trim();
+      dbg('raw 응답: ' + raw.slice(0, 100));
+
+      var parsed = safeParse(raw);
+      dbg('파싱 결과: ' + JSON.stringify(parsed));
+
+      var idx = findIdx(id);
+      if (idx < 0) return;
+
+      if (parsed) {
+        if (parsed.room) records[idx].room = parsed.room;
+        if (parsed.lab_name) records[idx].lab_name = parsed.lab_name;
+        if (parsed.professor) records[idx].professor = parsed.professor;
+        if (parsed.department) records[idx].department = parsed.department;
+        if (parsed.building) records[idx].building = parsed.building;
+      } else {
+        records[idx].lab_name = raw.slice(0, 50) || '(인식 결과 없음)';
+      }
+
+      var labName = records[idx].lab_name || '';
+      var profName = records[idx].professor || '';
+      var q = encodeURIComponent('서울대학교 ' + labName + ' ' + profName + ' 연구실 홈페이지');
+      records[idx].googleLink = 'https://www.google.com/search?q=' + q;
+      records[idx].status = 'done';
+      renderUI();
+      toast('인식 완료!');
+      dbg('완료: ' + labName);
+    })
+    .catch(function(err) {
+      clearInterval(tmr);
+      var msg = String(err.message || err);
+      dbg('오류 발생: ' + msg);
+      var idx = findIdx(id);
+      if (idx >= 0) {
+        records[idx].status = 'error';
+        records[idx].lab_name = '인식 실패';
+        records[idx].errMsg = msg;
+      }
+      renderUI();
+      toast('오류: ' + msg.slice(0, 50));
+    });
+  }
+
+  function findIdx(id) {
+    for (var i = 0; i < records.length; i++) {
+      if (records[i].id === id) return i;
+    }
+    return -1;
+  }
+
+  // ── UI 렌더 ──
+  function renderUI() {
+    var cnt = records.length;
+    document.getElementById('empty-state').style.display = cnt ? 'none' : 'block';
+    document.getElementById('list-sec').style.display = cnt ? 'block' : 'none';
+    document.getElementById('list-title').textContent = '수집 목록 (' + cnt + '건)';
+    document.getElementById('exp-cnt').textContent = cnt;
+    document.getElementById('btn-exp').disabled = cnt === 0;
+    var hcnt = document.getElementById('hcnt');
+    hcnt.textContent = cnt;
+    hcnt.style.display = cnt ? 'block' : 'none';
+
+    var list = document.getElementById('card-list');
+    list.innerHTML = '';
+
+    for (var i = 0; i < records.length; i++) {
+      (function(r) {
+        var isLoading = r.status === 'analyzing';
+        var badgeCls = r.status === 'done' ? 'b-done' : r.status === 'error' ? 'b-err' : 'b-ing';
+        var badgeTxt = r.status === 'done' ? '완료' : r.status === 'error' ? '오류' : '인식중';
+
+        var card = document.createElement('div');
+        card.className = 'rec-card' + (isLoading ? ' loading' : '');
+
+        var thumb = document.createElement('div');
+        thumb.className = 'card-ph';
+        if (r.thumb) {
+          var img = document.createElement('img');
+          img.className = 'card-thumb';
+          img.src = r.thumb;
+          img.alt = '사진';
+          thumb = img;
+        } else {
+          thumb.textContent = '🏫';
+        }
+
+        var body = document.createElement('div');
+        body.className = 'card-body';
+
+        var meta = document.createElement('div');
+        meta.className = 'card-meta';
+
+        var badge = document.createElement('span');
+        badge.className = 'badge ' + badgeCls;
+        if (isLoading) {
+          var sp = document.createElement('span');
+          sp.className = 'spinner';
+          badge.appendChild(sp);
+        }
+        badge.appendChild(document.createTextNode(badgeTxt));
+        meta.appendChild(badge);
+
+        if (r.room) {
+          var roomEl = document.createElement('span');
+          roomEl.className = 'card-room';
+          roomEl.textContent = r.room;
+          meta.appendChild(roomEl);
+        }
+
+        var nameEl = document.createElement('div');
+        nameEl.className = 'card-name';
+        nameEl.textContent = r.lab_name || '(연구소명 없음)';
+
+        var profRow = document.createElement('div');
+        profRow.className = 'card-row';
+        profRow.textContent = '👤 ' + (r.professor || '교수 정보 없음');
+
+        var hpRow = document.createElement('div');
+        hpRow.className = 'card-row';
+        hpRow.textContent = '🌐 ';
+        if (r.homepage) {
+          var a = document.createElement('a');
+          a.className = 'card-link';
+          a.href = r.homepage;
+          a.target = '_blank';
+          a.textContent = '홈페이지 열기';
+          hpRow.appendChild(a);
+        } else if (r.googleLink) {
+          var a2 = document.createElement('a');
+          a2.className = 'card-link amber';
+          a2.href = r.googleLink;
+          a2.target = '_blank';
+          a2.textContent = '구글에서 검색';
+          hpRow.appendChild(a2);
+        } else {
+          hpRow.appendChild(document.createTextNode('-'));
+        }
+
+        body.appendChild(meta);
+        body.appendChild(nameEl);
+
+        if (r.errMsg) {
+          var errEl = document.createElement('div');
+          errEl.className = 'card-err';
+          errEl.textContent = r.errMsg;
+          body.appendChild(errEl);
+        }
+
+        body.appendChild(profRow);
+        body.appendChild(hpRow);
+
+        if (isLoading) {
+          var pw = document.createElement('div');
+          pw.className = 'prog-wrap';
+          var pb = document.createElement('div');
+          pb.className = 'prog-bar';
+          pw.appendChild(pb);
+          body.appendChild(pw);
+          var st = document.createElement('div');
+          st.className = 'step-txt';
+          st.textContent = '인식 중...';
+          body.appendChild(st);
+        }
+
+        var top = document.createElement('div');
+        top.className = 'card-top';
+        top.appendChild(thumb);
+        top.appendChild(body);
+
+        var actions = document.createElement('div');
+        actions.className = 'card-actions';
+
+        var editBtn = document.createElement('button');
+        editBtn.className = 'btn-edit';
+        editBtn.textContent = '✏️ 수정';
+        (function(rid) { editBtn.onclick = function() { openModal(rid); }; })(r.id);
+
+        var delBtn = document.createElement('button');
+        delBtn.className = 'btn-del';
+        delBtn.textContent = '🗑 삭제';
+        (function(rid) { delBtn.onclick = function() { delRec(rid); }; })(r.id);
+
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        card.appendChild(top);
+        card.appendChild(actions);
+        list.appendChild(card);
+      })(records[i]);
+    }
+  }
+
+  function delRec(id) {
+    records = records.filter(function(r) { return r.id !== id; });
+    renderUI();
+    toast('삭제되었습니다');
+  }
+
+  function clearAll() {
+    if (records.length && !confirm('모든 데이터를 초기화할까요?')) return;
+    records = [];
+    document.getElementById('debug-box').innerHTML = '';
+    renderUI();
+    toast('초기화 완료');
+  }
+
+  function openModal(id) {
+    editId = id;
+    var r = null;
+    for (var i = 0; i < records.length; i++) {
+      if (records[i].id === id) { r = records[i]; break; }
+    }
+    document.getElementById('modal-ttl').textContent = r ? '연구실 정보 수정' : '연구실 직접 추가';
+    document.getElementById('f-room').value = (r && r.room) || '';
+    document.getElementById('f-lab').value = (r && r.lab_name) || '';
+    document.getElementById('f-prof').value = (r && r.professor) || '';
+    document.getElementById('f-hp').value = (r && r.homepage) || '';
+    document.getElementById('f-email').value = (r && r.email) || '';
+    document.getElementById('f-dept').value = (r && r.department) || '';
+    document.getElementById('f-bldg').value = (r && r.building) || '';
+    document.getElementById('modal-bg').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-bg').classList.remove('open');
+    editId = null;
+  }
+
+  function saveModal() {
+    var vals = {
+      room: document.getElementById('f-room').value.trim() || null,
+      lab_name: document.getElementById('f-lab').value.trim() || '(이름 없음)',
+      professor: document.getElementById('f-prof').value.trim() || null,
+      homepage: document.getElementById('f-hp').value.trim() || null,
+      email: document.getElementById('f-email').value.trim() || null,
+      department: document.getElementById('f-dept').value.trim() || null,
+      building: document.getElementById('f-bldg').value.trim() || null,
+      status: 'done', googleLink: null, errMsg: null
+    };
+    if (editId !== null) {
+      var idx = findIdx(editId);
+      if (idx >= 0) Object.assign(records[idx], vals);
+    } else {
+      records.unshift(Object.assign({ id: ++uid, thumb: null }, vals));
+    }
+    closeModal();
+    renderUI();
+    toast('저장되었습니다');
+  }
+
+  function exportExcel() {
+    if (!records.length) return;
+    var rows = records.map(function(r) {
+      return {
+        '호실': r.room || '',
+        '연구소/연구실명': r.lab_name || '',
+        '교수명': r.professor || '',
+        '홈페이지': r.homepage || '',
+        '이메일': r.email || '',
+        '학과': r.department || '',
+        '건물': r.building || '',
+        '수집일': new Date().toLocaleDateString('ko-KR')
+      };
+    });
+    var ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:10},{wch:30},{wch:14},{wch:40},{wch:28},{wch:20},{wch:14},{wch:14}];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '서울대연구실');
+    XLSX.writeFile(wb, '서울대_연구실_' + new Date().toISOString().slice(0,10) + '.xlsx');
+    toast('엑셀 저장 완료!');
+  }
+
+  // ── 이벤트 연결 ──
+  document.getElementById('inp-cam').addEventListener('change', function() { handleFiles(this.files); });
+  document.getElementById('inp-gal').addEventListener('change', function() { handleFiles(this.files); });
+  document.getElementById('drop-zone').addEventListener('click', function() { document.getElementById('inp-gal').click(); });
+  document.getElementById('drop-zone').addEventListener('dragover', function(e) { e.preventDefault(); this.classList.add('over'); });
+  document.getElementById('drop-zone').addEventListener('dragleave', function() { this.classList.remove('over'); });
+  document.getElementById('drop-zone').addEventListener('drop', function(e) {
+    e.preventDefault();
+    this.classList.remove('over');
+    handleFiles(e.dataTransfer.files);
+  });
+  document.getElementById('btn-add').addEventListener('click', function() { openModal(null); });
+  document.getElementById('btn-exp').addEventListener('click', exportExcel);
+  document.getElementById('btn-clear').addEventListener('click', clearAll);
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('modal-bg').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+  document.getElementById('btn-save').addEventListener('click', saveModal);
+
+  renderUI();
+})();
+</script>
+</body>
+</html>
